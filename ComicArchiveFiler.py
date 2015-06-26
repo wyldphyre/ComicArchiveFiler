@@ -18,11 +18,6 @@ def escapeForShell(source):
     return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
 
 
-def escapeForComicTagger(source):
-    assert isinstance(source, str)
-    return source.replace(',', '^,').replace('=', '^=')
-
-
 def outputHelp():
     print ''
     print 'Usage: ComicArchiveFiler [OPTIONS] [CONFIGURATIONFILE] [ARCHIVEFILE]'
@@ -68,67 +63,21 @@ def processFile(file_path, send_notification):
     extension = os.path.splitext(file_path)[1]
 
     if extension not in HANDLED_EXTENSIONS:
-        print "Skipping %s. Not a comic archive" % filename
+        print "Skipping %s. Not a recognised comic archive" % filename
         return
 
     print "Processing: %s" % filename
 
-    # # look for the issue number and title
-    # filename_volume = ""
-    # filename_issue = ""
-    # filename_title = ""
 
-    # # look for volume and chapter match i.e. chiis.sweet.home.MangaHere.v005.c017.cbz
-    # match = re.search('\.v(\d*)\.c(.*)\.cbz|cbr', filename)
-    # if match:
-    #     filename_volume = match.group(1)
-    #     filename_issue = match.group(2)
-    # else:
-    #     match = re.search('\.(\d*)\.\.(.*)\.cbz|cbr', filename)
-    #     if match:
-    #         filename_issue = match.group(1)
-    #         filename_title = match.group(2)
-    #     else:
-    #         match = re.search('\.c?(\d*)\.cbz|cbr', filename)
-    #         if match:
-    #             filename_issue = match.group(1)
+    process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
+    existing_tags = parseExistingTags(process.stdout.read())
 
-    # if not match:
-    #     print "Could not locate a title or issue number in: %s" % filename
-    # else:
-    #     if filename_volume != "":
-    #         filename_volume = cleanFilenameIssue(filename_volume)
-    #         print "Found Volume: %s" % filename_volume
-
-    #     if filename_issue != "":
-    #         filename_issue = cleanFilenameIssue(filename_issue)
-    #         print "Found Issue: %s" % filename_issue
-
-    #     if filename_title != "":
-    #         filename_title = cleanFilenameTitle(filename_title)
-    #         print "Found Title: %s" % filename_title
-
-    #     process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
-    #     existing_tags = parseExistingTags(process.stdout.read())
-
-    #     needs_update = \
-    #         (filename_issue != '' and (not 'issue' in existing_tags or (filename_issue != existing_tags['issue']))) or \
-    #         (filename_title != '' and (not 'title' in existing_tags or (filename_title != existing_tags['title']))) or \
-    #         (filename_volume != '' and (not 'volume' in existing_tags or (filename_volume != existing_tags['volume'])))
-
-    #     if needs_update:
-    #         do_update = auto_update or raw_input("Update tags for this file? (y/n): ") == "y"
-
-    #         if do_update:
-    #             metadata_statement = produceComicTaggerMetaDataStatement(filename_volume, filename_issue, filename_title)
-    #             command = '%s -s -m "%s" -t cr %s' % (COMIC_TAGGER_PATH, metadata_statement, escapeForShell(file_path))
-
-    #             return_code = subprocess.call(command, shell=True)
-    #             if return_code != 0:
-    #                 print "Return code: %s" % return_code
-    #     else:
-    #         print 'Tags already match found data. Skipping archive.'
-    # print ""
+    if 'series' in existing_tags:
+        # TODO: handle moving of file and notifications
+        print "Found series: %s" % existing_tags['series']
+    else:
+        # send notification of inability to file archive?
+        print "No series found in archive"
 
 
 # Main program method
