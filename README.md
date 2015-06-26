@@ -10,8 +10,9 @@ The goal is a to provide an easy to use script that will look at the series meta
 - Nothing yet, just getting started
 
 # Roadmap:
-- [Planned] Get the script to the going to the point of being able to examine an individual file and read the series infomation.
+- [Planned] Get the script to the going to the point of being able to examine an individual file and read the series information. Initial target is reading of ComicRack metadata only.
 - [Planned] Read the configuration file that determines where an archive should be moved to
-- [Planned] Send (optional) notification when a file is matched (maybe when no match made as well?). Pushover will be the initial target notification service/
+- [Planned] Send (optional) notification when a file is matched (maybe when no match made as well?). Pushover will be the initial target notification service.
+- [Eventually] Support reading of Comic Book Lover metadata.
 - [Maybe] Handle folders and subfolders in addition to individual files
 - [Maybe] Investigate using [ComicAPI](https://github.com/davide-romanini/comicapi) instead of requiring ComicTagger to be installed
