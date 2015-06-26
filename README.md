@@ -4,7 +4,7 @@ Examines comic archive files (.cbz and .cbz) and moves them to a new location ba
 The goal is a to provide an easy to use script that will look at the series metadata contained within a comic archive file and then file the archive by moving it to a new location, as specified by a simple rule configuration file.
 
 # Requirements
-- [ComicTagger](https://github.com/tomdelise/comictagger) [or here, originally](https://code.google.com/p/comictagger/)
+- [ComicTagger](https://github.com/tomdelise/comictagger) or [here, originally](https://code.google.com/p/comictagger/)
 
 # Current Status
 - Nothing yet, just getting started
