@@ -165,16 +165,16 @@ def ComicArchiveFiler():
         print "You must specify a comic archive file"
         quit()
 
-    if os.archive_path.isdir(archive_path):
+    if os.path.isdir(archive_path):
         directory_list = os.listdir(archive_path)
 
         for filename in directory_list:
-            file_path = os.archive_path.join(archive_path, filename)
+            file_path = os.path.join(archive_path, filename)
 
-            if os.archive_path.isfile(file_path):
+            if os.path.isfile(file_path):
                 processFile(file_path, send_notification)
 
-    elif os.archive_path.isfile(archive_path):
+    elif os.path.isfile(archive_path):
         processFile(archive_path, send_notification)
 
 
