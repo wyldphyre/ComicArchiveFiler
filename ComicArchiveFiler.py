@@ -13,6 +13,21 @@ COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path 
 HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 
+class ArchiveRoute:
+    """ Defines an archive metadata routing configuration """
+    metadataElement = ""
+    metadataContent = ""
+    target = ""
+
+    def __init__(self, element, content, target):
+        self.metadataElement = element
+        self.metadataContent = content
+        self.target = target
+
+    def display(self):
+        return "Metadata: {0} = {1}, target: {2}".format(self.metadataElement, self.metadataContent, self.target)
+
+
 def escapeForShell(source):
     assert isinstance(source, str)
     return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
@@ -54,7 +69,32 @@ def parseExistingTags(data):
     return tags
 
 
-def processFile(file_path, send_notification):
+def readRoutingConfiguration(configuration_path):
+    routes = list()
+
+    with open(configuration_path) as f:
+        lines = [line.rstrip('\n') for line in f]
+
+        for line in lines:
+            # print line
+            pieces  = line.split("->")
+
+            if len(pieces) != 2:
+                print "Routing configuration line must contain a '->': %s" % line
+                quit()
+
+            if ":" not in pieces[0]:
+                print "Metadata specification must contain a ':' : %s" % pieces[0];
+
+            target = pieces[1].strip()
+            metadata = [data.strip() for data in pieces[0].split(":")]
+
+            routes.append(ArchiveRoute(metadata[0], metadata[1], target))
+
+    return routes
+
+
+def processFile(file_path, routes, send_notification):
     assert isinstance(file_path, str)
     assert isinstance(send_notification, bool)
 
@@ -72,12 +112,16 @@ def processFile(file_path, send_notification):
     process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
     existing_tags = parseExistingTags(process.stdout.read())
 
-    if 'series' in existing_tags:
-        # TODO: handle moving of file and notifications
-        print "Found series: %s" % existing_tags['series']
-    else:
-        # send notification of inability to file archive?
-        print "No series found in archive"
+    applicableRoutes = [route for route in routes if
+                        route.metadataElement in existing_tags and existing_tags[route.metadataElement].lower() == route.metadataContent.lower()];
+
+    if len(applicableRoutes) > 0:
+        route = applicableRoutes[0]
+        print "Found matching route {0} for file {1}".format(route.display(), file_path)
+
+        # TODO: move file to route.target
+
+        # TODO: handle notifications
 
 
 # Main program method
@@ -109,9 +153,22 @@ def ComicArchiveFiler():
     if configuration_path == "":
         print "You must specify a archive_path to a configuration file"
         quit()
+    else:
+        if not os.path.exists(configuration_path):
+            print "Cannot locate configuration file path: %s" % configuration_path
+            quit()
 
     if archive_path == "":
         print "You must specify a comic archive file"
+        quit()
+    else:
+        if not os.path.exists(archive_path):
+            print "Cannot locate archive file path: %s" % archive_path
+
+    routes = readRoutingConfiguration(configuration_path)
+
+    if len(routes) < 1:
+        print "Found no valid routing instructions in the configuration file"
         quit()
 
     if os.path.isdir(archive_path):
@@ -121,10 +178,10 @@ def ComicArchiveFiler():
             file_path = os.path.join(archive_path, filename)
 
             if os.path.isfile(file_path):
-                processFile(file_path, send_notification)
+                processFile(file_path, routes, send_notification)
 
     elif os.path.isfile(archive_path):
-        processFile(archive_path, send_notification)
+        processFile(archive_path, routes, send_notification)
 
 
 # Start of execution
