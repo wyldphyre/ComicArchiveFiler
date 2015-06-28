@@ -7,7 +7,7 @@ The goal is a to provide an easy to use script that will look at the series meta
 - [ComicTagger](https://github.com/tomdelise/comictagger) (or [here, originally](https://code.google.com/p/comictagger/)) for extracting metadata from archive files
 
 # Current Status
-- The most of the basics are now in place, everything except the actual moving of the files and sending notifications.
+- Most of the basics are now in place, everything except the actual moving of the files and sending notifications.
 
 # Roadmap:
 - [Done] Get the script to the going to the point of being able to examine an individual file and read the series information. Initial target is reading of ComicRack metadata only.
