@@ -116,12 +116,12 @@ def parseExistingTags(data):
     tags = {}
 
     for line in lines:
-        if line == '':
+        if ':' not in line:
             continue
 
         pieces = line.split(':', 1)
 
-        if len(pieces) > 0 and pieces[1] != '':
+        if len(pieces) > 1 and pieces[1] != '':
             tags[pieces[0]] = pieces[1].strip(' ')
 
     return tags
