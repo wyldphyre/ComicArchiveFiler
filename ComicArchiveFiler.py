@@ -56,9 +56,7 @@ class Configuration:
                 if param == '-n':
                     self.send_notifications = True
                 elif param.startswith("-pushover:"):
-                    pieces = param.split(":")[1]
-                    print param
-                    print pieces
+                    pieces = param.split(":")
                     self.pushover_configuration.app_token = pieces[1]
                     self.pushover_configuration.user_key = pieces[2]
                 else:
