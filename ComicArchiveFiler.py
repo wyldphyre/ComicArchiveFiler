@@ -5,6 +5,8 @@
 import sys
 import os
 import subprocess
+import shutil
+import httplib, urllib
 
 
 # COMIC_TAGGER_PATH = 'COMIC_TAGGER_PATH/Applications/ComicTagger.app/Contents/MacOS/ComicTagger'
@@ -93,6 +95,18 @@ def readRoutingConfiguration(configuration_path):
     return routes
 
 
+def PushNotification(message):
+    # Pushover notification
+    conn = httplib.HTTPSConnection("api.pushover.net:443")
+    conn.request("POST", "/1/messages.json",
+      urllib.urlencode({
+        "token": "a1kgcb7huvD9nxuuwZPj9jQqjtZ1Pz",
+        "user": "uh8KJfSxGsz1riWvN7bo7pRraU6qnY",
+        "message": message,
+      }), { "Content-type": "application/x-www-form-urlencoded" })
+    conn.getresponse()
+
+
 def processFile(file_path, routes, send_notification):
     assert isinstance(file_path, str)
     assert isinstance(send_notification, bool)
@@ -107,7 +121,6 @@ def processFile(file_path, routes, send_notification):
 
     print "Processing: %s" % filename
 
-
     process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
     existing_tags = parseExistingTags(process.stdout.read())
 
@@ -119,8 +132,29 @@ def processFile(file_path, routes, send_notification):
         print "Found matching route {0} for file {1}".format(route.display(), file_path)
 
         # TODO: move file to route.target
+        file_copied = False
 
-        # TODO: handle notifications
+        try:
+            shutil.copy2(file_path, route.target)
+            file_copied = True
+
+            # TODO: handle notifications
+            PushNotification("Filed: {0}".format(filename))
+
+        except Exception:
+            copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
+            print copy_error
+            PushNotification(copy_error)
+            pass
+
+        if file_copied:
+            try:
+                os.remove(file_path)
+            except:
+                delete_error = "Error: Could not delete file {0}".format(file_path)
+                print delete_error
+                PushNotification(delete_error)
+                pass
 
 
 # Main program method
