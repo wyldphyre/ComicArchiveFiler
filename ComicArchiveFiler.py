@@ -139,21 +139,24 @@ def processFile(file_path, routes, send_notification):
             file_copied = True
 
             # TODO: handle notifications
-            PushNotification("Filed: {0}".format(filename))
+            if send_notification:
+                PushNotification("Filed: {0}".format(filename))
 
         except Exception:
             copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
             print copy_error
-            PushNotification(copy_error)
+            if send_notification:
+                PushNotification(copy_error)
             pass
 
         if file_copied:
             try:
                 os.remove(file_path)
-            except:
+            except Exception:
                 delete_error = "Error: Could not delete file {0}".format(file_path)
                 print delete_error
-                PushNotification(delete_error)
+                if send_notification:
+                    PushNotification(delete_error)
                 pass
 
 
