@@ -14,6 +14,12 @@ COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path 
 HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 
+class NotificationConfiguration:
+    def __init__(self):
+        self.app_token = ""
+        self.user_key = ""
+
+
 class ArchiveRoute:
     """ Defines an archive metadata routing configuration """
     metadataElement = ""
@@ -35,19 +41,24 @@ class Configuration:
     target_path = ""
     send_notifications = False
     errors = list()
+    pushover_configuration = NotificationConfiguration()
 
     def __init__(self):
         arguments = sys.argv
 
-        if len(arguments) != 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
+        if len(arguments) < 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
             self.errors.append("Incorrect parameters!")
 
         for param in arguments[1:]:
             if param.startswith('-'):
-                if param == '-p':
-                    self.send_notification = True
+                if param == '-n':
+                    self.send_notifications = True
+                elif param.startswith("-pushover:"):
+                    pieces = param.split(":")[1].split(";")
+                    self.pushover_configuration.app_token = pieces[0]
+                    self.pushover_configuration.user_key = pieces[1]
                 else:
-                    self.erros.append("Unknown options {0}".format(param))
+                    self.errors.append("Unknown options {0}".format(param))
             else:
                 if self.configuration_path == "":
                     self.configuration_path = param
@@ -82,7 +93,8 @@ def outputHelp():
     print 'Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file'
     print ''
     print 'Options:'
-    print '  No options yet'
+    print ' -n : Send notifications'
+    print ' -pushover:APP_TOKEN;USER_KEY'
     print ''
 
 
@@ -136,21 +148,21 @@ def readRoutingConfiguration(configuration_path):
     return routes
 
 
-def PushNotification(message):
+def PushNotification(pushover_configuration, message):
     # Pushover notification
     conn = httplib.HTTPSConnection("api.pushover.net:443")
     conn.request("POST", "/1/messages.json",
       urllib.urlencode({
-        "token": "a1kgcb7huvD9nxuuwZPj9jQqjtZ1Pz",
-        "user": "uh8KJfSxGsz1riWvN7bo7pRraU6qnY",
+        "token": pushover_configuration.app_token,
+        "user": pushover_configuration.user_key,
         "message": message,
       }), { "Content-type": "application/x-www-form-urlencoded" })
     conn.getresponse()
 
 
-def processFile(file_path, routes, send_notification):
+def processFile(file_path, routes, configuration):
     assert isinstance(file_path, str)
-    assert isinstance(send_notification, bool)
+    assert isinstance(configuration.send_notifications, bool)
 
     # check that file is a comic archive
     filename = os.path.split(file_path)[1]
@@ -180,14 +192,14 @@ def processFile(file_path, routes, send_notification):
             file_copied = True
 
             # TODO: handle notifications
-            if send_notification:
-                PushNotification("Filed: {0}".format(filename))
+            if configuration.send_notifications:
+                PushNotification(configuration.pushover_configuration, "Filed: {0}".format(filename))
 
         except Exception:
             copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
             print copy_error
-            if send_notification:
-                PushNotification(copy_error)
+            if configuration.send_notifications:
+                PushNotification(configuration.pushover_configuration, copy_error)
             pass
 
         if file_copied:
@@ -196,8 +208,8 @@ def processFile(file_path, routes, send_notification):
             except Exception:
                 delete_error = "Error: Could not delete file {0}".format(file_path)
                 print delete_error
-                if send_notification:
-                    PushNotification(delete_error)
+                if configuration.send_notifications:
+                    PushNotification(configuration.pushover_configuration, delete_error)
                 pass
 
 
@@ -225,10 +237,10 @@ def ComicArchiveFiler():
             file_path = os.path.join(configuration.target_path, filename)
 
             if os.path.isfile(file_path):
-                processFile(file_path, routes, configuration.send_notifications)
+                processFile(file_path, routes, configuration)
 
     elif os.path.isfile(configuration.target_path):
-        processFile(configuration.target_path, routes, configuration.send_notifications)
+        processFile(configuration.target_path, routes, configuration)
 
 
 # Start of execution
