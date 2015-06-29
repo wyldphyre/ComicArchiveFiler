@@ -29,6 +29,47 @@ class ArchiveRoute:
         return "Metadata: {0} = {1}, target: {2}".format(self.metadataElement, self.metadataContent, self.target)
 
 
+class Configuration:
+    """ Encapsulates the configuration options for ComicArchiveFiler """
+    configuration_path = ""
+    target_path = ""
+    send_notifications = False
+    errors = list()
+
+    def __init__(self):
+        arguments = sys.argv
+
+        if len(arguments) != 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
+            self.errors.append("Incorrect parameters!")
+
+        for param in arguments[1:]:
+            if param.startswith('-'):
+                if param == '-p':
+                    self.send_notification = True
+                else:
+                    self.erros.append("Unknown options {0}".format(param))
+            else:
+                if self.configuration_path == "":
+                    self.configuration_path = param
+                else:
+                    self.target_path = param
+
+        if self.configuration_path == "":
+            self.errors.append("You must specify a archive_path to a configuration file")
+        else:
+            if not os.path.exists(self.configuration_path):
+                self.errors.append("Cannot locate configuration file path: {0}".format(self.configuration_path))
+
+        if self.target_path == "":
+            self.errors.append("You must specify a target comic archive file")
+        else:
+            if not os.path.exists(self.target_path):
+                self.errors.append("Cannot locate archive file path: {0}".format(self.target_path))
+
+    def valid(self):
+        return len(self.errors) == 0
+
+
 def escapeForShell(source):
     assert isinstance(source, str)
     return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
@@ -162,62 +203,32 @@ def processFile(file_path, routes, send_notification):
 
 # Main program method
 def ComicArchiveFiler():
-    arguments = sys.argv
+    configuration = Configuration()
 
-    if len(arguments) != 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
-        print "Incorrect parameters!"
+    if not configuration.valid():
+        for error in configuration.errors:
+            print error
+
         outputHelp()
         quit()
 
-    configuration_path = ""
-    archive_path = ""
-    send_notification = False
-
-    for param in arguments[1:]:
-        if param.startswith('-'):
-            if param == '-p':
-                send_notification = True
-            else:
-                print "Unknown options %s" % param
-                quit()
-        else:
-            if configuration_path == "":
-                configuration_path = param
-            else:
-                archive_path = param
-
-    if configuration_path == "":
-        print "You must specify a archive_path to a configuration file"
-        quit()
-    else:
-        if not os.path.exists(configuration_path):
-            print "Cannot locate configuration file path: %s" % configuration_path
-            quit()
-
-    if archive_path == "":
-        print "You must specify a comic archive file"
-        quit()
-    else:
-        if not os.path.exists(archive_path):
-            print "Cannot locate archive file path: %s" % archive_path
-
-    routes = readRoutingConfiguration(configuration_path)
+    routes = readRoutingConfiguration(configuration.configuration_path)
 
     if len(routes) < 1:
         print "Found no valid routing instructions in the configuration file"
         quit()
 
-    if os.path.isdir(archive_path):
-        directory_list = os.listdir(archive_path)
+    if os.path.isdir(configuration.target_path):
+        directory_list = os.listdir(configuration.target_path)
 
         for filename in directory_list:
-            file_path = os.path.join(archive_path, filename)
+            file_path = os.path.join(configuration.target_path, filename)
 
             if os.path.isfile(file_path):
-                processFile(file_path, routes, send_notification)
+                processFile(file_path, routes, configuration.send_notifications)
 
-    elif os.path.isfile(archive_path):
-        processFile(archive_path, routes, send_notification)
+    elif os.path.isfile(configuration.target_path):
+        processFile(configuration.target_path, routes, configuration.send_notifications)
 
 
 # Start of execution
