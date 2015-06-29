@@ -46,6 +46,8 @@ class Configuration:
     def __init__(self):
         arguments = sys.argv
 
+        print arguments
+
         if len(arguments) < 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
             self.errors.append("Incorrect parameters!")
 
@@ -54,9 +56,11 @@ class Configuration:
                 if param == '-n':
                     self.send_notifications = True
                 elif param.startswith("-pushover:"):
-                    pieces = param.split(":")[1].split(";")
-                    self.pushover_configuration.app_token = pieces[0]
-                    self.pushover_configuration.user_key = pieces[1]
+                    pieces = param.split(":")[1]
+                    print param
+                    print pieces
+                    self.pushover_configuration.app_token = pieces[1]
+                    self.pushover_configuration.user_key = pieces[2]
                 else:
                     self.errors.append("Unknown options {0}".format(param))
             else:
