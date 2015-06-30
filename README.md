@@ -15,6 +15,7 @@ The goal is a to provide an easy to use script that will look at the series meta
 - [Done] Move file based on routing configuration
 - [Done] Send (optional) notification when a file is matched (maybe when no match made as well?). Pushover will be the initial target notification service.
 - [Planned] Send notification if no routing match is found
+- [Planned] Log activity so that there is a record of what was matched and where it was moved to
 - [Eventually] Support reading of Comic Book Lover metadata.
 - [Maybe] Handle folders and subfolders in addition to individual files
 - [Maybe] Investigate using [ComicAPI](https://github.com/davide-romanini/comicapi) instead of requiring ComicTagger to be installed
