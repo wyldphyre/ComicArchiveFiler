@@ -96,7 +96,7 @@ def outputHelp():
     print ''
     print 'Options:'
     print ' -n : Send notifications'
-    print ' -pushover:APP_TOKEN;USER_KEY'
+    print ' -pushover:APP_TOKEN:USER_KEY'
     print ''
 
 
