@@ -14,6 +14,11 @@ COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path 
 HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 
+def escapeForShell(source):
+    assert isinstance(source, str)
+    return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+
+
 class NotificationConfiguration:
     def __init__(self):
         self.app_token = ""
@@ -42,6 +47,7 @@ class Configuration:
     send_notifications = False
     errors = list()
     pushover_configuration = NotificationConfiguration()
+    routes = list()
 
     def __init__(self):
         arguments = sys.argv
@@ -79,171 +85,175 @@ class Configuration:
             if not os.path.exists(self.target_path):
                 self.errors.append("Cannot locate archive file path: {0}".format(self.target_path))
 
+        self.routes = self.readRoutingConfiguration(self.configuration_path)
+
+
     def valid(self):
         return len(self.errors) == 0
 
 
-def escapeForShell(source):
-    assert isinstance(source, str)
-    return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+    def readRoutingConfiguration(self, configuration_path):
+        routes = list()
+
+        with open(configuration_path) as f:
+            lines = [line.rstrip('\n') for line in f]
+
+            for line in lines:
+                # print line
+                pieces  = line.split("->")
+
+                if len(pieces) != 2:
+                    print "Routing configuration line must contain a '->': %s" % line
+                    quit()
+
+                if ":" not in pieces[0]:
+                    print "Metadata specification must contain a ':' : %s" % pieces[0];
+
+                target = pieces[1].strip()
+                metadata = [data.strip() for data in pieces[0].split(":")]
+
+                routes.append(ArchiveRoute(metadata[0], metadata[1], target))
+
+        return routes
 
 
-def outputHelp():
-    print ''
-    print 'Usage: ComicArchiveFiler [OPTIONS] [CONFIGURATIONFILE] [ARCHIVEFILE]'
-    print ''
-    print 'Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file'
-    print ''
-    print 'Options:'
-    print ' -n : Send notifications'
-    print ' -pushover:APP_TOKEN:USER_KEY'
-    print ''
+class ComicArchiveFiler:
+    """ This class encapsulates the behaviour of the ComicArchiveFiler script """
+
+    def __init__(self):
+        self.configuration = Configuration()
+
+        if not self.configuration.valid():
+            for error in self.configuration.errors:
+                print error
+
+            self.outputHelp()
+            return
 
 
-def parseExistingTags(data):
-    assert isinstance(data, str)
-
-    # validate
-    start_index = data.find('------ComicRack tags--------')
-    if start_index == -1:
-        return []
-
-    data = data[data.find('\n', start_index) + 1:]
-
-    lines = data.splitlines()
-    tags = {}
-
-    for line in lines:
-        if ':' not in line:
-            continue
-
-        pieces = line.split(':', 1)
-
-        if len(pieces) > 1 and pieces[1] != '':
-            tags[pieces[0]] = pieces[1].strip(' ')
-
-    return tags
+    @staticmethod
+    def outputHelp():
+        print ''
+        print 'Usage: ComicArchiveFiler [OPTIONS] [CONFIGURATIONFILE] [ARCHIVEFILE]'
+        print ''
+        print 'Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file'
+        print ''
+        print 'Options:'
+        print ' -n : Send notifications'
+        print ' -pushover:APP_TOKEN:USER_KEY'
+        print ''
 
 
-def readRoutingConfiguration(configuration_path):
-    routes = list()
+    @staticmethod
+    def parseExistingTags(data):
+        assert isinstance(data, str)
 
-    with open(configuration_path) as f:
-        lines = [line.rstrip('\n') for line in f]
+        # validate
+        start_index = data.find('------ComicRack tags--------')
+        if start_index == -1:
+            return []
+
+        data = data[data.find('\n', start_index) + 1:]
+
+        lines = data.splitlines()
+        tags = {}
 
         for line in lines:
-            # print line
-            pieces  = line.split("->")
+            if ':' not in line:
+                continue
 
-            if len(pieces) != 2:
-                print "Routing configuration line must contain a '->': %s" % line
-                quit()
+            pieces = line.split(':', 1)
 
-            if ":" not in pieces[0]:
-                print "Metadata specification must contain a ':' : %s" % pieces[0];
+            if len(pieces) > 1 and pieces[1] != '':
+                tags[pieces[0]] = pieces[1].strip(' ')
 
-            target = pieces[1].strip()
-            metadata = [data.strip() for data in pieces[0].split(":")]
-
-            routes.append(ArchiveRoute(metadata[0], metadata[1], target))
-
-    return routes
+        return tags
 
 
-def PushNotification(pushover_configuration, message):
-    # Pushover notification
-    conn = httplib.HTTPSConnection("api.pushover.net:443")
-    conn.request("POST", "/1/messages.json",
-      urllib.urlencode({
-        "token": pushover_configuration.app_token,
-        "user": pushover_configuration.user_key,
-        "message": message,
-      }), { "Content-type": "application/x-www-form-urlencoded" })
-    conn.getresponse()
+    @staticmethod
+    def PushNotification(pushover_configuration, message):
+        # Pushover notification
+        conn = httplib.HTTPSConnection("api.pushover.net:443")
+        conn.request("POST", "/1/messages.json",
+          urllib.urlencode({
+            "token": pushover_configuration.app_token,
+            "user": pushover_configuration.user_key,
+            "message": message,
+          }), { "Content-type": "application/x-www-form-urlencoded" })
+        conn.getresponse()
 
 
-def processFile(file_path, routes, configuration):
-    assert isinstance(file_path, str)
-    assert isinstance(configuration.send_notifications, bool)
+    def processFile(self, file_path):
+        assert isinstance(file_path, str)
+        assert isinstance(self.configuration.send_notifications, bool)
 
-    # check that file is a comic archive
-    filename = os.path.split(file_path)[1]
-    extension = os.path.splitext(file_path)[1]
+        # check that file is a comic archive
+        filename = os.path.split(file_path)[1]
+        extension = os.path.splitext(file_path)[1]
 
-    if extension not in HANDLED_EXTENSIONS:
-        print "Skipping %s. Not a recognised comic archive" % filename
-        return
+        if extension not in HANDLED_EXTENSIONS:
+            print "Skipping %s. Not a recognised comic archive" % filename
+            return
 
-    print "Processing: %s" % filename
+        print "Processing: %s" % filename
 
-    process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
-    existing_tags = parseExistingTags(process.stdout.read())
+        process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
+        existing_tags = self.parseExistingTags(process.stdout.read())
 
-    applicableRoutes = [route for route in routes if
-                        route.metadataElement in existing_tags and existing_tags[route.metadataElement].lower() == route.metadataContent.lower()];
+        applicableRoutes = [route for route in self.configuration.routes if
+                            route.metadataElement in existing_tags and existing_tags[route.metadataElement].lower() == route.metadataContent.lower()];
 
-    if len(applicableRoutes) > 0:
-        route = applicableRoutes[0]
-        print "Found matching route {0} for file {1}".format(route.display(), file_path)
+        if len(applicableRoutes) > 0:
+            route = applicableRoutes[0]
+            print "Found matching route {0} for file {1}".format(route.display(), file_path)
 
-        # TODO: move file to route.target
-        file_copied = False
+            # TODO: move file to route.target
+            file_copied = False
 
-        try:
-            shutil.copy2(file_path, route.target)
-            file_copied = True
-
-            # TODO: handle notifications
-            if configuration.send_notifications:
-                PushNotification(configuration.pushover_configuration, "Filed: {0}".format(filename))
-
-        except Exception:
-            copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
-            print copy_error
-            if configuration.send_notifications:
-                PushNotification(configuration.pushover_configuration, copy_error)
-            pass
-
-        if file_copied:
             try:
-                os.remove(file_path)
+                shutil.copy2(file_path, route.target)
+                file_copied = True
+
+                # TODO: handle notifications
+                if self.configuration.send_notifications:
+                    self.PushNotification(self.configuration.pushover_configuration, "Filed: {0}".format(filename))
+
             except Exception:
-                delete_error = "Error: Could not delete file {0}".format(file_path)
-                print delete_error
-                if configuration.send_notifications:
-                    PushNotification(configuration.pushover_configuration, delete_error)
+                copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
+                print copy_error
+                if self.configuration.send_notifications:
+                    self.PushNotification(self.configuration.pushover_configuration, copy_error)
                 pass
 
+            if file_copied:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    delete_error = "Error: Could not delete file {0}".format(file_path)
+                    print delete_error
+                    if self.configuration.send_notifications:
+                        self.PushNotification(self.configuration.pushover_configuration, delete_error)
+                    pass
 
-# Main program method
-def ComicArchiveFiler():
-    configuration = Configuration()
 
-    if not configuration.valid():
-        for error in configuration.errors:
-            print error
+    def execute(self):
+        if len(self.configuration.routes) < 1:
+            print "Found no valid routing instructions in the configuration file"
+            return
 
-        outputHelp()
-        quit()
+        if os.path.isdir(self.configuration.target_path):
+            directory_list = os.listdir(self.configuration.target_path)
 
-    routes = readRoutingConfiguration(configuration.configuration_path)
+            for filename in directory_list:
+                file_path = os.path.join(self.configuration.target_path, filename)
 
-    if len(routes) < 1:
-        print "Found no valid routing instructions in the configuration file"
-        quit()
+                if os.path.isfile(file_path):
+                    self.processFile(file_path, self.configuration)
 
-    if os.path.isdir(configuration.target_path):
-        directory_list = os.listdir(configuration.target_path)
-
-        for filename in directory_list:
-            file_path = os.path.join(configuration.target_path, filename)
-
-            if os.path.isfile(file_path):
-                processFile(file_path, routes, configuration)
-
-    elif os.path.isfile(configuration.target_path):
-        processFile(configuration.target_path, routes, configuration)
+        elif os.path.isfile(self.configuration.target_path):
+            self.processFile(self.configuration.target_path)
 
 
 # Start of execution
-ComicArchiveFiler()
+filer = ComicArchiveFiler()
+filer.execute()
