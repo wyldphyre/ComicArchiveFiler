@@ -87,10 +87,8 @@ class Configuration:
 
         self.routes = self.readRoutingConfiguration(self.configuration_path)
 
-
     def valid(self):
         return len(self.errors) == 0
-
 
     def readRoutingConfiguration(self, configuration_path):
         routes = list()
@@ -100,7 +98,7 @@ class Configuration:
 
             for line in lines:
                 # print line
-                pieces  = line.split("->")
+                pieces = line.split("->")
 
                 if len(pieces) != 2:
                     print "Routing configuration line must contain a '->': %s" % line
@@ -130,7 +128,6 @@ class ComicArchiveFiler:
             self.outputHelp()
             return
 
-
     @staticmethod
     def outputHelp():
         print ''
@@ -142,7 +139,6 @@ class ComicArchiveFiler:
         print ' -n : Send notifications'
         print ' -pushover:APP_TOKEN:USER_KEY'
         print ''
-
 
     @staticmethod
     def parseExistingTags(data):
@@ -169,19 +165,17 @@ class ComicArchiveFiler:
 
         return tags
 
-
     @staticmethod
     def PushNotification(pushover_configuration, message):
         # Pushover notification
         conn = httplib.HTTPSConnection("api.pushover.net:443")
         conn.request("POST", "/1/messages.json",
-          urllib.urlencode({
-            "token": pushover_configuration.app_token,
-            "user": pushover_configuration.user_key,
-            "message": message,
-          }), { "Content-type": "application/x-www-form-urlencoded" })
+                     urllib.urlencode({
+                         "token": pushover_configuration.app_token,
+                         "user": pushover_configuration.user_key,
+                         "message": message,
+                     }), {"Content-type": "application/x-www-form-urlencoded"})
         conn.getresponse()
-
 
     def processFile(self, file_path):
         assert isinstance(file_path, str)
@@ -197,14 +191,16 @@ class ComicArchiveFiler:
 
         print "Processing: %s" % filename
 
-        process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE, shell=True)
+        process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE,
+                                   shell=True)
         existing_tags = self.parseExistingTags(process.stdout.read())
 
-        applicableRoutes = [route for route in self.configuration.routes if
-                            route.metadataElement in existing_tags and existing_tags[route.metadataElement].lower() == route.metadataContent.lower()];
+        applicable_routes = [route for route in self.configuration.routes if
+                            route.metadataElement in existing_tags and existing_tags[
+                                route.metadataElement].lower() == route.metadataContent.lower()];
 
-        if len(applicableRoutes) > 0:
-            route = applicableRoutes[0]
+        if len(applicable_routes) > 0:
+            route = applicable_routes[0]
             print "Found matching route {0} for file {1}".format(route.display(), file_path)
 
             # TODO: move file to route.target
@@ -235,7 +231,6 @@ class ComicArchiveFiler:
                         self.PushNotification(self.configuration.pushover_configuration, delete_error)
                     pass
 
-
     def execute(self):
         if len(self.configuration.routes) < 1:
             print "Found no valid routing instructions in the configuration file"
@@ -252,7 +247,6 @@ class ComicArchiveFiler:
 
         elif os.path.isfile(self.configuration.target_path):
             self.processFile(self.configuration.target_path)
-
 
 # Start of execution
 filer = ComicArchiveFiler()
