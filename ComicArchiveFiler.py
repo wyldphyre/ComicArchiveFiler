@@ -131,7 +131,7 @@ class ComicArchiveFiler:
     @staticmethod
     def outputHelp():
         print ''
-        print 'Usage: ComicArchiveFiler [OPTIONS] [CONFIGURATIONFILE] [ARCHIVEFILE]'
+        print 'Usage: ComicArchiveFiler [OPTIONS] <CONFIGURATIONFILE> <ARCHIVEFILE>'
         print ''
         print 'Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file'
         print ''
@@ -166,7 +166,7 @@ class ComicArchiveFiler:
         return tags
 
     @staticmethod
-    def PushNotification(pushover_configuration, message):
+    def pushNotification(pushover_configuration, message):
         # Pushover notification
         conn = httplib.HTTPSConnection("api.pushover.net:443")
         conn.request("POST", "/1/messages.json",
@@ -212,13 +212,13 @@ class ComicArchiveFiler:
 
                 # TODO: handle notifications
                 if self.configuration.send_notifications:
-                    self.PushNotification(self.configuration.pushover_configuration, "Filed: {0}".format(filename))
+                    self.pushNotification(self.configuration.pushover_configuration, "Filed: {0}".format(filename))
 
             except Exception:
                 copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
                 print copy_error
                 if self.configuration.send_notifications:
-                    self.PushNotification(self.configuration.pushover_configuration, copy_error)
+                    self.pushNotification(self.configuration.pushover_configuration, copy_error)
                 pass
 
             if file_copied:
@@ -228,7 +228,7 @@ class ComicArchiveFiler:
                     delete_error = "Error: Could not delete file {0}".format(file_path)
                     print delete_error
                     if self.configuration.send_notifications:
-                        self.PushNotification(self.configuration.pushover_configuration, delete_error)
+                        self.pushNotification(self.configuration.pushover_configuration, delete_error)
                     pass
 
     def execute(self):
