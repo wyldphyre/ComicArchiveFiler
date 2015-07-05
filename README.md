@@ -9,6 +9,16 @@ The goal is a to provide an easy to use script that will look at the series meta
 # Current Status
 - Basic implementation is done. The script can move files and send notifications via Pushover.
 
+# Usage
+    ComicArchiveFiler [OPTIONS] <CONFIGURATIONFILE> <ARCHIVEFILE>
+
+    Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file
+
+    Options:
+     -n : Send notifications
+     -pushover:APP_TOKEN:USER_KEY
+
+
 # Roadmap:
 - [Done] Get the script to the going to the point of being able to examine an individual file and read the series information. Initial target is reading of ComicRack metadata only.
 - [Done] Read the configuration file that determines where an archive should be moved to
