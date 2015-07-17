@@ -166,7 +166,7 @@ class ComicArchiveFiler:
         return tags
 
     @staticmethod
-    def pushNotification(pushover_configuration, message):
+    def pushNotification(pushover_configuration, message, priority = 0):
         # Pushover notification
         conn = httplib.HTTPSConnection("api.pushover.net:443")
         conn.request("POST", "/1/messages.json",
@@ -174,6 +174,7 @@ class ComicArchiveFiler:
                          "token": pushover_configuration.app_token,
                          "user": pushover_configuration.user_key,
                          "message": message,
+                         "priority": priority
                      }), {"Content-type": "application/x-www-form-urlencoded"})
         conn.getresponse()
 
@@ -210,15 +211,15 @@ class ComicArchiveFiler:
                 shutil.copy2(file_path, route.target)
                 file_copied = True
 
-                # TODO: handle notifications
+                # send low priority notification that filing is complete
                 if self.configuration.send_notifications:
-                    self.pushNotification(self.configuration.pushover_configuration, "Filed: {0}".format(filename))
+                    self.pushNotification(self.configuration.pushover_configuration, "Filed: {0}".format(filename), -1)
 
             except Exception:
                 copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
                 print copy_error
                 if self.configuration.send_notifications:
-                    self.pushNotification(self.configuration.pushover_configuration, copy_error)
+                    self.pushNotification(self.configuration.pushover_configuration, copy_error, 1)
                 pass
 
             if file_copied:
@@ -228,8 +229,10 @@ class ComicArchiveFiler:
                     delete_error = "Error: Could not delete file {0}".format(file_path)
                     print delete_error
                     if self.configuration.send_notifications:
-                        self.pushNotification(self.configuration.pushover_configuration, delete_error)
+                        self.pushNotification(self.configuration.pushover_configuration, delete_error, 1)
                     pass
+        else:
+            self.pushNotification(self.configuration.pushover_configuration, "Could not file {0}. No matching route found".format(filename))
 
     def execute(self):
         if len(self.configuration.routes) < 1:
