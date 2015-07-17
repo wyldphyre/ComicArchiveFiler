@@ -101,11 +101,11 @@ class Configuration:
                 pieces = line.split("->")
 
                 if len(pieces) != 2:
-                    print "Routing configuration line must contain a '->': %s" % line
+                    print "Routing configuration line must contain a '->': {0}".format(line)
                     quit()
 
                 if ":" not in pieces[0]:
-                    print "Metadata specification must contain a ':' : %s" % pieces[0];
+                    print "Metadata specification must contain a ':' : {0}".format(pieces[0]);
 
                 target = pieces[1].strip()
                 metadata = [data.strip() for data in pieces[0].split(":")]
@@ -187,10 +187,10 @@ class ComicArchiveFiler:
         extension = os.path.splitext(file_path)[1]
 
         if extension not in HANDLED_EXTENSIONS:
-            print "Skipping %s. Not a recognised comic archive" % filename
+            print "Skipping {0}. Not a recognised comic archive".format(filename)
             return
 
-        print "Processing: %s" % filename
+        print "Processing: {0}".format(filename)
 
         process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE,
                                    shell=True)
