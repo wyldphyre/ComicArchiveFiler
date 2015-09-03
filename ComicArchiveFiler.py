@@ -108,7 +108,7 @@ class Configuration:
                     print "Metadata specification must contain a ':' : {0}".format(pieces[0]);
 
                 target = pieces[1].strip()
-                metadata = [data.strip() for data in pieces[0].split(":")]
+                metadata = [data.strip() for data in pieces[0].split(":", 1)]
 
                 routes.append(ArchiveRoute(metadata[0], metadata[1], target))
 
