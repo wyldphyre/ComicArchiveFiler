@@ -94,7 +94,7 @@ class Configuration:
         routes = list()
 
         with open(configuration_path) as f:
-            lines = [line.rstrip('\n') for line in f]
+            lines = [line.rstrip('\n') for line in f if line != '' and line != '\n']
 
             for line in lines:
                 # print line
