@@ -1,3 +1,4 @@
 genre:test genre -> /Users/craigreynolds/Documents/Development/ComicArchiveFiler/test/target2
 series:test2 -> /Users/craigreynolds/Documents/Development/ComicArchiveFiler/test/target2
 series:test1 -> /Users/craigreynolds/Documents/Development/ComicArchiveFiler/test/target1
+series:8House: Arclight -> /Users/craigreynolds/Documents/Development/ComicArchiveFiler/test/target1
