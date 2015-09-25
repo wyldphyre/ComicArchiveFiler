@@ -101,7 +101,10 @@ class Configuration:
                 pieces = line.split("->")
 
                 if len(pieces) != 2:
-                    print "Routing configuration line must contain a '->': {0}".format(line)
+                    routing_configuration_error = "Routing configuration line must contain a '->': {0}".format(line)
+                    print routing_configuration_error
+                    if self.send_notifications:
+                        Notifications.pushNotification(self.pushover_configuration, routing_configuration_error, 1)
                     quit()
 
                 if ":" not in pieces[0]:
@@ -113,6 +116,21 @@ class Configuration:
                 routes.append(ArchiveRoute(metadata[0], metadata[1], target))
 
         return routes
+
+
+class Notifications:
+    @staticmethod
+    def pushNotification(pushover_configuration, message, priority = 0):
+            # Pushover notification
+            conn = httplib.HTTPSConnection("api.pushover.net:443")
+            conn.request("POST", "/1/messages.json",
+                         urllib.urlencode({
+                             "token": pushover_configuration.app_token,
+                             "user": pushover_configuration.user_key,
+                             "message": message,
+                             "priority": priority
+                         }), {"Content-type": "application/x-www-form-urlencoded"})
+            conn.getresponse()
 
 
 class ComicArchiveFiler:
@@ -167,16 +185,7 @@ class ComicArchiveFiler:
 
     @staticmethod
     def pushNotification(pushover_configuration, message, priority = 0):
-        # Pushover notification
-        conn = httplib.HTTPSConnection("api.pushover.net:443")
-        conn.request("POST", "/1/messages.json",
-                     urllib.urlencode({
-                         "token": pushover_configuration.app_token,
-                         "user": pushover_configuration.user_key,
-                         "message": message,
-                         "priority": priority
-                     }), {"Content-type": "application/x-www-form-urlencoded"})
-        conn.getresponse()
+        Notifications.pushNotification(pushover_configuration, message, priority)
 
     def processFile(self, file_path):
         assert isinstance(file_path, str)
