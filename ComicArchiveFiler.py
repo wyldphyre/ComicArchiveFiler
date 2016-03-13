@@ -16,7 +16,7 @@ HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 def escapeForShell(source):
     assert isinstance(source, str)
-    return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)')
+    return source.replace(' ', '\ ').replace('(', '\(').replace(')', '\)').replace("'", "\\'")
 
 
 class NotificationConfiguration:
