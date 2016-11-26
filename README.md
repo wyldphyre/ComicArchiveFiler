@@ -1,15 +1,19 @@
 # ComicArchiveFiler
+
 Examines comic archive files (.cbz and .cbz) and moves them to a new location based on configured rules.
 
 The goal is a to provide an easy to use script that will look at the series metadata contained within a comic archive file and then file the archive by moving it to a new location, as specified by a simple rule configuration file.
 
-# Requirements
+## Requirements
+
 - [ComicTagger](https://github.com/tomdelise/comictagger) (or [here, originally](https://code.google.com/p/comictagger/)) for reading the metadata from archive files
 
-# Current Status
+## Current Status
+
 - Basic implementation is done. The script can move files and send notifications via Pushover.
 
-# Usage
+## Usage
+
     ComicArchiveFiler [OPTIONS] <CONFIGURATIONFILE> <ARCHIVEFILE>
 
     Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file
