@@ -10,7 +10,7 @@ import httplib, urllib
 
 
 # COMIC_TAGGER_PATH = 'COMIC_TAGGER_PATH/Applications/ComicTagger.app/Contents/MacOS/ComicTagger'
-COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path above
+COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias I have that points to the full path above
 HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 
