@@ -6,11 +6,12 @@ import sys
 import os
 import subprocess
 import shutil
-import httplib, urllib
+import http.client, urllib
 
 
 # COMIC_TAGGER_PATH = 'COMIC_TAGGER_PATH/Applications/ComicTagger.app/Contents/MacOS/ComicTagger'
-COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path above
+COMIC_TAGGER_PATH = "C:\\Program Files\\Comic Tagger\\comictagger.exe" # Possible path for Windows
+#COMIC_TAGGER_PATH = 'ComicTagger'  # a local alias that points to the full path above, useful on MacOS
 HANDLED_EXTENSIONS = ['.cbr', '.cbz']
 
 
@@ -52,7 +53,7 @@ class Configuration:
     def __init__(self):
         arguments = sys.argv
 
-        print arguments
+        print(arguments)
 
         if len(arguments) < 3:  # the sys.argv[0] contains the script name, so there is always at least one argument
             self.errors.append("Incorrect parameters!")
@@ -102,13 +103,13 @@ class Configuration:
 
                 if len(pieces) != 2:
                     routing_configuration_error = "Routing configuration line must contain a '->': {0}".format(line)
-                    print routing_configuration_error
+                    print(routing_configuration_error)
                     if self.send_notifications:
                         Notifications.pushNotification(self.pushover_configuration, routing_configuration_error, 1)
                     quit()
 
                 if ":" not in pieces[0]:
-                    print "Metadata specification must contain a ':' : {0}".format(pieces[0]);
+                    print("Metadata specification must contain a ':' : {0}".format(pieces[0]))
 
                 target = pieces[1].strip()
                 metadata = [data.strip() for data in pieces[0].split(":", 1)]
@@ -122,7 +123,7 @@ class Notifications:
     @staticmethod
     def pushNotification(pushover_configuration, message, priority = 0):
             # Pushover notification
-            conn = httplib.HTTPSConnection("api.pushover.net:443")
+            conn = http.client.HTTPSConnection("api.pushover.net:443")
             conn.request("POST", "/1/messages.json",
                          urllib.urlencode({
                              "token": pushover_configuration.app_token,
@@ -141,22 +142,22 @@ class ComicArchiveFiler:
 
         if not self.configuration.valid():
             for error in self.configuration.errors:
-                print error
+                print(error)
 
             self.outputHelp()
             return
 
     @staticmethod
     def outputHelp():
-        print ''
-        print 'Usage: ComicArchiveFiler [OPTIONS] <CONFIGURATIONFILE> <ARCHIVEFILE>'
-        print ''
-        print 'Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file'
-        print ''
-        print 'Options:'
-        print ' -n : Send notifications'
-        print ' -pushover:APP_TOKEN:USER_KEY'
-        print ''
+        print('')
+        print('Usage: ComicArchiveFiler [OPTIONS] <CONFIGURATIONFILE> <ARCHIVEFILE>')
+        print('')
+        print('Looks at the series metadata for a comic archive and move the file if a matching rule is found in the specified rule configuration file')
+        print('')
+        print('Options:')
+        print(' -n : Send notifications')
+        print(' -pushover:APP_TOKEN:USER_KEY')
+        print('')
 
     @staticmethod
     def parseExistingTags(data):
@@ -164,6 +165,9 @@ class ComicArchiveFiler:
 
         # validate
         start_index = data.find('------ComicRack tags--------')
+        if start_index == -1:
+            start_index = data.find('--------- ComicRack tags ---------')
+
         if start_index == -1:
             return []
 
@@ -196,22 +200,31 @@ class ComicArchiveFiler:
         extension = os.path.splitext(file_path)[1]
 
         if extension not in HANDLED_EXTENSIONS:
-            print "Skipping {0}. Not a recognised comic archive".format(filename)
+            print("Skipping {0}. Not a recognised comic archive".format(filename))
             return
 
-        print "Processing: {0}".format(filename)
+        print("Processing: {0}".format(filename))
 
-        process = subprocess.Popen('%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path)), stdout=subprocess.PIPE,
-                                   shell=True)
-        existing_tags = self.parseExistingTags(process.stdout.read())
+        isWindows = os.name == 'nt'
 
+        if isWindows:
+            comicTaggerArgs = '"%s" -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path))
+        else:
+            comicTaggerArgs = '%s -p %s' % (COMIC_TAGGER_PATH, escapeForShell(file_path))
+        
+        print(comicTaggerArgs)
+
+        data = subprocess.run(args=comicTaggerArgs, capture_output=True, text=True)
+        
+        existing_tags = self.parseExistingTags(data.stdout)
+        
         applicable_routes = [route for route in self.configuration.routes if
                             route.metadataElement in existing_tags and existing_tags[
-                                route.metadataElement].lower() == route.metadataContent.lower()];
+                                route.metadataElement].lower() == route.metadataContent.lower()]
 
         if len(applicable_routes) > 0:
             route = applicable_routes[0]
-            print "Found matching route {0} for file {1}".format(route.display(), file_path)
+            print("Found matching route {0} for file {1}".format(route.display(), file_path))
 
             # TODO: move file to route.target
             file_copied = False
@@ -226,7 +239,7 @@ class ComicArchiveFiler:
 
             except Exception:
                 copy_error = "Error: Could not copy file {0} to {1}".format(file_path, route.target)
-                print copy_error
+                print(copy_error)
                 if self.configuration.send_notifications:
                     self.pushNotification(self.configuration.pushover_configuration, copy_error, 1)
                 pass
@@ -236,16 +249,20 @@ class ComicArchiveFiler:
                     os.remove(file_path)
                 except Exception:
                     delete_error = "Error: Could not delete file {0}".format(file_path)
-                    print delete_error
+                    print(delete_error)
                     if self.configuration.send_notifications:
                         self.pushNotification(self.configuration.pushover_configuration, delete_error, 1)
                     pass
         else:
-            self.pushNotification(self.configuration.pushover_configuration, "Could not file {0}. No matching route found".format(filename))
+            message = "Could not file {0}. No matching route found".format(filename)
+            if self.configuration.send_notifications:
+                self.pushNotification(self.configuration.pushover_configuration, message)
+            else:
+                print(message)
 
     def execute(self):
         if len(self.configuration.routes) < 1:
-            print "Found no valid routing instructions in the configuration file"
+            print("Found no valid routing instructions in the configuration file")
             return
 
         if os.path.isdir(self.configuration.target_path):
@@ -255,7 +272,7 @@ class ComicArchiveFiler:
                 file_path = os.path.join(self.configuration.target_path, filename)
 
                 if os.path.isfile(file_path):
-                    self.processFile(file_path, self.configuration)
+                    self.processFile(file_path)
 
         elif os.path.isfile(self.configuration.target_path):
             self.processFile(self.configuration.target_path)
